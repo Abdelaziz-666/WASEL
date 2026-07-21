@@ -4,7 +4,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../services/student_service.dart';
 
 class StudentGradesScreen extends StatefulWidget {
-  const StudentGradesScreen({super.key});
+  final String stage;
+  final String groupName;
+
+  const StudentGradesScreen({super.key, required this.stage, required this.groupName});
 
   @override
   State<StudentGradesScreen> createState() => _StudentGradesScreenState();
@@ -13,44 +16,9 @@ class StudentGradesScreen extends StatefulWidget {
 class _StudentGradesScreenState extends State<StudentGradesScreen> {
   final StudentService _studentService = StudentService();
   final String _studentId = FirebaseAuth.instance.currentUser?.uid ?? '';
-  
-  Map<String, dynamic>? _studentData;
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadStudentData();
-  }
-
-  Future<void> _loadStudentData() async {
-    var data = await _studentService.getStudentData();
-    if (mounted) {
-      setState(() {
-        _studentData = data;
-        _isLoading = false;
-      });
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Scaffold(
-        backgroundColor: Color(0xFFF5F7FA),
-        body: Center(child: CircularProgressIndicator(color: Color(0xFF1B3B5A))),
-      );
-    }
-
-    if (_studentData == null) {
-      return const Scaffold(
-        body: Center(child: Text('حدث خطأ في جلب البيانات')),
-      );
-    }
-
-    String studentStage = _studentData!['stage'] ?? '';
-    String studentGroup = _studentData!['group'] ?? '';
-
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
@@ -62,18 +30,12 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
           iconTheme: const IconThemeData(color: Colors.white),
         ),
         body: StreamBuilder<QuerySnapshot>(
-          stream: _studentService.getStudentExams(studentStage, studentGroup),
+          stream: _studentService.getStudentExams(widget.stage, widget.groupName),
           builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-              return _buildEmptyState();
-            }
+            if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return _buildEmptyState();
 
             var allExams = snapshot.data!.docs;
-            
             allExams.sort((a, b) {
               try {
                 Timestamp timeA = a.get('timestamp');
@@ -89,14 +51,19 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
               itemCount: allExams.length,
               itemBuilder: (context, index) {
                 var exam = allExams[index];
-                
                 String examName = exam['examName'] ?? 'امتحان';
                 String maxGrade = exam['maxGrade'] ?? '100';
-                String examDate = exam['date'] ?? '';
+                
+                String examDate = '';
+                if (exam['date'] is Timestamp) {
+                  DateTime d = (exam['date'] as Timestamp).toDate();
+                  examDate = "${d.year}-${d.month}-${d.day}";
+                } else {
+                  examDate = exam['date'].toString();
+                }
                 
                 Map<String, dynamic> records = exam['records'] ?? {};
                 String myGrade = records[_studentId] ?? 'غائب';
-                
                 Color gradeColor = (myGrade == 'غائب' || myGrade.isEmpty) ? Colors.red : const Color(0xFF2B4D7E);
                 if (myGrade.isEmpty) myGrade = 'غائب';
 
@@ -125,7 +92,6 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                             ],
                           ),
                         ),
-                        
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                           decoration: BoxDecoration(
@@ -135,15 +101,9 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                           ),
                           child: Column(
                             children: [
-                              Text(
-                                myGrade,
-                                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: gradeColor),
-                              ),
+                              Text(myGrade, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: gradeColor)),
                               Container(height: 1, width: 40, color: Colors.grey.withOpacity(0.5), margin: const EdgeInsets.symmetric(vertical: 4)),
-                              Text(
-                                maxGrade,
-                                style: const TextStyle(fontSize: 14, color: Colors.black54),
-                              ),
+                              Text(maxGrade, style: const TextStyle(fontSize: 14, color: Colors.black54)),
                             ],
                           ),
                         ),

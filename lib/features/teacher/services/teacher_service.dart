@@ -25,13 +25,27 @@ class TeacherService {
     }
   }
 
-  Future<void> rejectStudent(String uid) async {
-    try {
-      await _firestore.collection('users').doc(uid).delete();
-    } catch (e) {
-      print("Error rejecting student: $e");
+Future<String> rejectStudent(String uid) async {
+  try {
+    await _firestore.collection('users').doc(uid).update({
+      'status': 'rejected',
+      'rejectedAt': FieldValue.serverTimestamp(),
+    });
+    
+    var subscriptions = await _firestore
+        .collection('subscriptions')
+        .where('studentId', isEqualTo: uid)
+        .get();
+    
+    for (var doc in subscriptions.docs) {
+      await _firestore.collection('subscriptions').doc(doc.id).delete();
     }
+    
+    return "success";
+  } catch (e) {
+    return "حدث خطأ: $e";
   }
+}
 
   Future<String> addGroup({required String stage, required String groupName}) async {
     try {
@@ -157,6 +171,124 @@ class TeacherService {
       return "success";
     } catch (e) {
       return e.toString();
+    }
+  }
+
+  Stream<QuerySnapshot> getPendingRequests() {
+    String? uid = FirebaseAuth.instance.currentUser?.uid;
+    return _firestore
+        .collection('subscriptions')
+        .where('teacherId', isEqualTo: uid)
+        .where('status', isEqualTo: 'pending')
+        .snapshots();
+  }
+
+  Future<String> approveRequest(String subscriptionId) async {
+    try {
+      DocumentSnapshot subDoc = await _firestore.collection('subscriptions').doc(subscriptionId).get();
+      
+      if (subDoc.exists) {
+        String studentId = subDoc.get('studentId');
+
+        await _firestore.collection('subscriptions').doc(subscriptionId).update({
+          'status': 'approved',
+        });
+
+        await _firestore.collection('users').doc(studentId).update({
+          'status': 'active',
+        });
+      }
+
+      return "success";
+    } catch (e) {
+      return "حدث خطأ: $e";
+    }
+  }
+
+  Stream<QuerySnapshot> getTeacherInquiries() {
+    String? uid = FirebaseAuth.instance.currentUser?.uid;
+    return _firestore
+        .collection('inquiries')
+        .where('teacherId', isEqualTo: uid)
+        .snapshots();
+  }
+
+  Future<String> answerInquiry(String inquiryId, String answer) async {
+    try {
+      await _firestore.collection('inquiries').doc(inquiryId).update({
+        'answer': answer,
+        'status': 'answered',
+      });
+      return "success";
+    } catch (e) {
+      return "حدث خطأ: $e";
+    }
+  }
+
+  Future<String> saveAssignments({
+    required String stage,
+    required String groupName,
+    required DateTime date,
+    required Map<String, String> assignmentRecords,
+  }) async {
+    try {
+      String? teacherId = FirebaseAuth.instance.currentUser?.uid;
+      if (teacherId == null) return "error";
+
+      String dateString = "${date.year}-${date.month}-${date.day}";
+
+      var existing = await _firestore
+          .collection('assignments')
+          .where('teacherId', isEqualTo: teacherId)
+          .where('stage', isEqualTo: stage)
+          .where('group', isEqualTo: groupName)
+          .where('date', isEqualTo: dateString)
+          .get();
+
+      if (existing.docs.isNotEmpty) {
+        await _firestore.collection('assignments').doc(existing.docs.first.id).update({
+          'records': assignmentRecords,
+          'timestamp': FieldValue.serverTimestamp(),
+        });
+      } else {
+        await _firestore.collection('assignments').add({
+          'teacherId': teacherId,
+          'stage': stage,
+          'group': groupName,
+          'date': dateString,
+          'records': assignmentRecords,
+          'timestamp': FieldValue.serverTimestamp(),
+        });
+      }
+      return "success";
+    } catch (e) {
+      return e.toString();
+    }
+  }
+
+  Future<Map<String, bool>> getAttendanceForDate(String stage, String groupName, DateTime date) async {
+    try {
+      String dateString = "${date.year}-${date.month}-${date.day}";
+      var snapshot = await _firestore
+          .collection('attendance')
+          .where('stage', isEqualTo: stage)
+          .where('group', isEqualTo: groupName)
+          .where('date', isEqualTo: dateString)
+          .get();
+
+      if (snapshot.docs.isEmpty) return {};
+
+      var data = snapshot.docs.first.data();
+      Map<String, dynamic> records = data['records'] ?? {};
+      Map<String, bool> attendanceMap = {};
+      
+      records.forEach((key, value) {
+        attendanceMap[key] = value == true;
+      });
+
+      return attendanceMap;
+    } catch (e) {
+      return {};
     }
   }
 }

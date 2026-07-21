@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'register_screen.dart';
 import 'pending_approval_screen.dart';
+import 'rejected_student_screen.dart';
 import '../services/auth_service.dart';
 import '../../teacher/screens/teacher_dashboard_screen.dart';
-import '../../student/screens/student_dashboard_screen.dart';
+import '../../student/screens/student_teachers_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -76,7 +77,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                         const SizedBox(height: 40),
-
                         _buildTextField(
                           controller: _phoneController,
                           hintText: 'رقم الهاتف',
@@ -85,7 +85,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           isNumber: true,
                         ),
                         const SizedBox(height: 20),
-
                         _buildTextField(
                           controller: _passwordController,
                           hintText: 'كلمة المرور أو الكود',
@@ -94,7 +93,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           isNumber: false,
                         ),
                         const SizedBox(height: 32),
-
                         SizedBox(
                           width: double.infinity,
                           height: 55,
@@ -107,11 +105,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                         _isLoading = true;
                                       });
 
-                                      String result = await _authService
-                                          .loginUser(
-                                            phone: _phoneController.text.trim(),
-                                            password: _passwordController.text,
-                                          );
+                                      String result = await _authService.loginUser(
+                                        phone: _phoneController.text.trim(),
+                                        password: _passwordController.text,
+                                      );
 
                                       setState(() {
                                         _isLoading = false;
@@ -124,7 +121,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                           context,
                                           MaterialPageRoute(
                                             builder: (context) =>
-                                                const StudentDashboardScreen(),
+                                                const StudentTeachersScreen(),
                                           ),
                                         );
                                       } else if (result == 'teacher') {
@@ -136,9 +133,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                           ),
                                         );
                                       } else if (result == 'assistant') {
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
+                                        ScaffoldMessenger.of(context).showSnackBar(
                                           const SnackBar(
                                             content: Text(
                                               'مرحباً بك في لوحة المساعد!',
@@ -155,9 +150,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                           ),
                                         );
                                       } else if (result == 'suspended') {
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
+                                        ScaffoldMessenger.of(context).showSnackBar(
                                           const SnackBar(
                                             content: Text(
                                               'تم إيقاف حسابك، يرجى مراجعة الإدارة',
@@ -165,10 +158,16 @@ class _LoginScreenState extends State<LoginScreen> {
                                             backgroundColor: Colors.red,
                                           ),
                                         );
-                                      } else {
-                                        ScaffoldMessenger.of(
+                                      } else if (result == 'rejected') {
+                                        Navigator.pushReplacement(
                                           context,
-                                        ).showSnackBar(
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                const RejectedStudentScreen(),
+                                          ),
+                                        );
+                                      } else {
+                                        ScaffoldMessenger.of(context).showSnackBar(
                                           SnackBar(
                                             content: Text(result),
                                             backgroundColor: Colors.red,
@@ -199,10 +198,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-
                         TextButton(
-                          onPressed: () {
-                          },
+                          onPressed: () {},
                           child: const Text(
                             'نسيت كلمة المرور؟',
                             style: TextStyle(
@@ -212,9 +209,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                         ),
-
                         const SizedBox(height: 16),
-
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -288,7 +283,9 @@ class _LoginScreenState extends State<LoginScreen> {
         suffixIcon: isPassword
             ? IconButton(
                 icon: Icon(
-                  _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                  _isPasswordVisible
+                      ? Icons.visibility
+                      : Icons.visibility_off,
                   color: const Color(0xFF1B3B5A),
                 ),
                 onPressed: () {

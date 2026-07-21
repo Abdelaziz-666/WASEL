@@ -32,8 +32,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     'الأول الإعدادي', 'الثاني الإعدادي', 'الثالث الإعدادي',
     'الأول الثانوي', 'الثاني الثانوي', 'الثالث الثانوي'
   ];
-  
-  final List<String> _groups = ['مجموعة السبت والثلاثاء', 'مجموعة الأحد والأربعاء'];
+  List<String> _groups = [];
 
   @override
   void dispose() {
@@ -123,7 +122,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           hint: 'اختر المرحلة الدراسية',
                           value: _selectedStage,
                           items: _stages,
-                          onChanged: (value) => setState(() => _selectedStage = value),
+                          onChanged: (value) => setState(() {
+                            _selectedStage = value;
+                            _selectedGroup = null;
+                          }),
                         ),
                         const SizedBox(height: 16),
                         
@@ -169,6 +171,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               onChanged: (val) {
                                 setState(() {
                                   _selectedTeacherId = val;
+                                  _selectedGroup = null;
                                 });
                               },
                               validator: (val) {
@@ -182,11 +185,81 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                         const SizedBox(height: 16),
 
-                        _buildDropdown(
-                          hint: 'اختر المجموعة',
-                          value: _selectedGroup,
-                          items: _groups,
-                          onChanged: (value) => setState(() => _selectedGroup = value),
+                        StreamBuilder<QuerySnapshot>(
+                          stream: (_selectedTeacherId != null && _selectedStage != null)
+                              ? _authService.getGroupsByTeacherAndStage(
+                                  _selectedTeacherId!,
+                                  _selectedStage!,
+                                )
+                              : null,
+                          builder: (context, snapshot) {
+                            if (_selectedTeacherId == null || _selectedStage == null) {
+                              return Container(
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                child: Text(
+                                  _selectedTeacherId == null 
+                                      ? 'يرجى اختيار المدرس أولاً'
+                                      : 'يرجى اختيار المرحلة أولاً',
+                                  style: const TextStyle(color: Colors.grey),
+                                ),
+                              );
+                            }
+
+                            if (snapshot?.connectionState == ConnectionState.waiting) {
+                              return const Center(child: CircularProgressIndicator());
+                            }
+
+                            if (snapshot == null || !snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                              return Container(
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                child: const Text(
+                                  'لا توجد مجموعات لهذا المدرس في هذه المرحلة',
+                                  style: TextStyle(color: Colors.red),
+                                ),
+                              );
+                            }
+
+                            var groups = snapshot.data!.docs;
+
+                            return DropdownButtonFormField<String>(
+                              value: _selectedGroup,
+                              isExpanded: true,
+                              icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF1B3B5A)),
+                              decoration: InputDecoration(
+                                filled: true,
+                                fillColor: const Color(0xFFF0F2F5),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide.none,
+                                ),
+                                errorBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(color: Colors.red, width: 1),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                                prefixIcon: const Icon(Icons.group, color: Color(0xFF1B3B5A)),
+                              ),
+                              hint: const Text('اختر المجموعة', style: TextStyle(color: Colors.grey, fontSize: 14)),
+                              items: groups.map((doc) {
+                                String groupName = doc['groupName'] ?? 'بدون اسم';
+                                return DropdownMenuItem<String>(
+                                  value: groupName,
+                                  child: Text(groupName),
+                                );
+                              }).toList(),
+                              onChanged: (val) {
+                                setState(() {
+                                  _selectedGroup = val;
+                                });
+                              },
+                              validator: (val) {
+                                if (val == null || val.isEmpty) {
+                                  return 'يرجى اختيار المجموعة';
+                                }
+                                return null;
+                              },
+                            );
+                          },
                         ),
                         const SizedBox(height: 16),
 
@@ -199,68 +272,96 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         const SizedBox(height: 32),
 
                         SizedBox(
-                        width: double.infinity,
-                        height: 55,
-                        child: ElevatedButton(
-                          onPressed: _isLoading ? null : () async {
-                            if (_formKey.currentState!.validate()) {
-                              setState(() {
-                                _isLoading = true;
-                              });
+                          width: double.infinity,
+                          height: 55,
+                          child: ElevatedButton(
+                            onPressed: _isLoading ? null : () async {
+                              if (_formKey.currentState!.validate()) {
+                                if (_selectedStage == null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('يرجى اختيار المرحلة'),
+                                      backgroundColor: Colors.orange,
+                                    ),
+                                  );
+                                  return;
+                                }
+                                if (_selectedTeacherId == null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('يرجى اختيار المدرس'),
+                                      backgroundColor: Colors.orange,
+                                    ),
+                                  );
+                                  return;
+                                }
+                                if (_selectedGroup == null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('يرجى اختيار المجموعة'),
+                                      backgroundColor: Colors.orange,
+                                    ),
+                                  );
+                                  return;
+                                }
 
-                              String? result = await _authService.registerStudent(
-                                name: _nameController.text.trim(),
-                                phone: _phoneController.text.trim(),
-                                fatherPhone: _fatherPhoneController.text.trim(),
-                                motherPhone: _motherPhoneController.text.trim(),
-                                stage: _selectedStage!,
-                                teacherId: _selectedTeacherId!,
-                                group: _selectedGroup!,
-                                password: _passwordController.text,
-                              );
+                                setState(() {
+                                  _isLoading = true;
+                                });
 
-                              setState(() {
-                                _isLoading = false;
-                              });
-
-                              if (result == "success") {
-                                if (!mounted) return;
-                                Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => const PendingApprovalScreen(),
-                                  ),
+                                String? result = await _authService.registerStudent(
+                                  name: _nameController.text.trim(),
+                                  phone: _phoneController.text.trim(),
+                                  fatherPhone: _fatherPhoneController.text.trim(),
+                                  motherPhone: _motherPhoneController.text.trim(),
+                                  stage: _selectedStage!,
+                                  teacherId: _selectedTeacherId!,
+                                  group: _selectedGroup!,
+                                  password: _passwordController.text,
                                 );
-                              } else {
-                                if (!mounted) return;
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(result ?? 'حدث خطأ غير معروف'),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
+
+                                setState(() {
+                                  _isLoading = false;
+                                });
+
+                                if (result == "success") {
+                                  if (!mounted) return;
+                                  Navigator.pushReplacement(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => const PendingApprovalScreen(),
+                                    ),
+                                  );
+                                } else {
+                                  if (!mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(result ?? 'حدث خطأ غير معروف'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
                               }
-                            }
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF2B4D7E),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF2B4D7E),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 0,
                             ),
-                            elevation: 0,
-                          ),
-                          child: _isLoading
-                              ? const CircularProgressIndicator(color: Colors.white)
-                              : const Text(
-                                  'تسجيل',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
+                            child: _isLoading
+                                ? const CircularProgressIndicator(color: Colors.white)
+                                : const Text(
+                                    'تسجيل',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
                                   ),
-                                ),
+                          ),
                         ),
-                      ),
                         const SizedBox(height: 16),
 
                         TextButton(

@@ -23,7 +23,9 @@ class AuthService {
         password: password,
       );
 
-      await _firestore.collection('users').doc(userCredential.user!.uid).set({
+      String studentId = userCredential.user!.uid;
+
+      await _firestore.collection('users').doc(studentId).set({
         'name': name,
         'phone': phone,
         'fatherPhone': fatherPhone,
@@ -36,6 +38,21 @@ class AuthService {
         'createdAt': FieldValue.serverTimestamp(),
       });
 
+      DocumentSnapshot teacherDoc = await _firestore.collection('users').doc(teacherId).get();
+      String teacherName = teacherDoc.exists ? (teacherDoc.get('name') ?? 'مدرس') : 'مدرس';
+
+      await _firestore.collection('subscriptions').add({
+        'studentId': studentId,
+        'studentName': name,
+        'studentPhone': phone,
+        'teacherId': teacherId,
+        'teacherName': teacherName,
+        'stage': stage,
+        'group': group,
+        'status': 'pending',
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+
       return "success";
     } on FirebaseAuthException catch (e) {
       if (e.code == 'email-already-in-use') {
@@ -46,7 +63,7 @@ class AuthService {
       return 'حدث خطأ غير متوقع';
     }
   }
-
+  
   Stream<QuerySnapshot> getTeachers() {
     return _firestore
         .collection('users')
@@ -83,6 +100,8 @@ class AuthService {
           return 'pending';
         } else if (status == 'suspended') {
           return 'suspended';
+        } else if (status == 'rejected') {
+          return 'rejected';
         }
       }
 
@@ -97,6 +116,59 @@ class AuthService {
       return 'حدث خطأ: ${e.code}';
     } catch (e) {
       return 'حدث خطأ غير متوقع';
+    }
+  }
+
+  Stream<QuerySnapshot> getGroupsByTeacherAndStage(String teacherId, String stage) {
+    return _firestore
+        .collection('groups')
+        .where('teacherId', isEqualTo: teacherId)
+        .where('stage', isEqualTo: stage)
+        .snapshots();
+  }
+
+  Future<String?> updateStudentRejectedProfile({
+    required String name,
+    required String phone,
+    required String fatherPhone,
+    required String motherPhone,
+    required String stage,
+    required String teacherId,
+    required String group,
+  }) async {
+    try {
+      String? studentId = _auth.currentUser?.uid;
+      if (studentId == null) return "خطأ في معرف المستخدم";
+
+      await _firestore.collection('users').doc(studentId).update({
+        'name': name,
+        'phone': phone,
+        'fatherPhone': fatherPhone,
+        'motherPhone': motherPhone,
+        'stage': stage,
+        'group': group,
+        'status': 'pending',
+        'teacherId': teacherId,
+      });
+
+      DocumentSnapshot teacherDoc = await _firestore.collection('users').doc(teacherId).get();
+      String teacherName = teacherDoc.exists ? (teacherDoc.get('name') ?? 'مدرس') : 'مدرس';
+
+      await _firestore.collection('subscriptions').add({
+        'studentId': studentId,
+        'studentName': name,
+        'studentPhone': phone,
+        'teacherId': teacherId,
+        'teacherName': teacherName,
+        'stage': stage,
+        'group': group,
+        'status': 'pending',
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+
+      return "success";
+    } catch (e) {
+      return "حدث خطأ: $e";
     }
   }
 }

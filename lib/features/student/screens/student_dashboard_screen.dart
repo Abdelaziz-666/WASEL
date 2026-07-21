@@ -1,13 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../auth/Screens/login_screen.dart';
 import 'student_notifications_screen.dart';
 import 'student_grades_screen.dart';
 import 'student_attendance_screen.dart';
-import '../../auth/Screens/login_screen.dart';
+import 'student_inquiries_screen.dart';
+import 'student_assignments_screen.dart';
 
 class StudentDashboardScreen extends StatefulWidget {
-  const StudentDashboardScreen({super.key});
+  final String teacherId;
+  final String teacherName;
+  final String stage;
+  final String groupName;
+
+  const StudentDashboardScreen({
+    super.key,
+    required this.teacherId,
+    required this.teacherName,
+    required this.stage,
+    required this.groupName,
+  });
 
   @override
   State<StudentDashboardScreen> createState() => _StudentDashboardScreenState();
@@ -16,7 +29,6 @@ class StudentDashboardScreen extends StatefulWidget {
 class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
   String studentName = 'جاري التحميل...';
   String studentPhone = '...';
-  String studentStage = '...';
   bool isLoading = true;
 
   @override
@@ -36,7 +48,6 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
           setState(() {
             studentName = userDoc.get('name') ?? 'بدون اسم';
             studentPhone = userDoc.get('phone') ?? '';
-            studentStage = userDoc.get('stage') ?? '';
             isLoading = false;
           });
         }
@@ -76,9 +87,10 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                         onPressed: () async {
                           await FirebaseAuth.instance.signOut();
                           if (!context.mounted) return;
-                          Navigator.pushReplacement(
+                          Navigator.pushAndRemoveUntil(
                             context,
                             MaterialPageRoute(builder: (context) => const LoginScreen()),
+                            (route) => false,
                           );
                         },
                         child: const Text('Log Out', style: TextStyle(color: Colors.grey, fontSize: 16, fontWeight: FontWeight.w600)),
@@ -87,7 +99,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  const Text('الصفحة الرئيسية', style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Color(0xFF1B3B5A))),
+                  Text('أهلاً بك في مادة ${widget.teacherName}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1B3B5A))),
                   const SizedBox(height: 16),
 
                   Container(
@@ -118,7 +130,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                               const SizedBox(height: 4),
                               Text('رقم الهاتف: $studentPhone', style: const TextStyle(color: Colors.white70, fontSize: 14)),
                               const SizedBox(height: 4),
-                              Text('المرحلة: $studentStage', style: const TextStyle(color: Colors.white70, fontSize: 14)),
+                              Text('المرحلة: ${widget.stage} - ${widget.groupName}', style: const TextStyle(color: Colors.white70, fontSize: 14)),
                             ],
                           ),
                         ),
@@ -133,19 +145,40 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const StudentAttendanceScreen()),
+                        MaterialPageRoute(builder: (context) => StudentAttendanceScreen(
+                          stage: widget.stage, 
+                          groupName: widget.groupName
+                        )),
                       );
                     }
                   ),
-                  _buildDashboardItem(title: 'أداء الواجبات', icon: Icons.edit_note, onTap: () {}),
-                  _buildDashboardItem(title: 'مستوى الامتحانات', icon: Icons.analytics_outlined, onTap: () {}),
+                 _buildDashboardItem(
+                    title: 'أداء الواجبات', 
+                    icon: Icons.edit_note, 
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => StudentAssignmentsScreen(
+                            teacherId: widget.teacherId,
+                            stage: widget.stage,
+                            groupName: widget.groupName,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+             
                   _buildDashboardItem(
                     title: 'درجاتي', 
                     icon: Icons.workspace_premium_outlined, 
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const StudentGradesScreen()),
+                        MaterialPageRoute(builder: (context) => StudentGradesScreen(
+                          stage: widget.stage, 
+                          groupName: widget.groupName
+                        )),
                       );
                     }
                   ),
@@ -155,7 +188,11 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const StudentNotificationsScreen()),
+                        MaterialPageRoute(builder: (context) => StudentNotificationsScreen(
+                          teacherId: widget.teacherId,
+                          stage: widget.stage,
+                          groupName: widget.groupName
+                        )),
                       );
                     }
                   ),
@@ -163,8 +200,18 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                   
                   const Divider(height: 40, thickness: 1.5, color: Colors.black12),
                   
-                  _buildDashboardItem(title: 'الامتحانات التفاعلية', icon: Icons.quiz_outlined, onTap: () {}),
-                  _buildDashboardItem(title: 'الاستفسارات', icon: Icons.chat_bubble_outline, onTap: () {}),
+                  _buildDashboardItem(
+                    title: 'الاستفسارات', 
+                    icon: Icons.chat_bubble_outline, 
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => StudentInquiriesScreen(
+                          teacherId: widget.teacherId,
+                        )),
+                      );
+                    }
+                  ),
                   const SizedBox(height: 20),
                 ],
               ),

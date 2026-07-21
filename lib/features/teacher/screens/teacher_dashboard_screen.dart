@@ -6,6 +6,8 @@ import 'add_group_screen.dart';
 import 'attendance_screen.dart';
 import 'exam_grades_screen.dart';
 import 'send_notification_screen.dart';
+import 'teacher_inquiries_screen.dart';
+import 'teacher_assignments_screen.dart';
 import '../../auth/Screens/login_screen.dart';
 
 class TeacherDashboardScreen extends StatefulWidget {
@@ -141,7 +143,12 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
                       context,
                       title: 'أداء الواجبات',
                       icon: Icons.assignment_turned_in,
-                      onTap: () {},
+                      onTap: () {
+                       Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const TeacherAssignmentsScreen()),
+                        );
+                      },
                     ),
                     _buildDashboardCard(
                       context,
@@ -166,11 +173,16 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
                       },
                     ),
                     _buildDashboardCard(
-                      context,
-                      title: 'الاستفسارات',
-                      icon: Icons.chat,
-                      onTap: () {},
-                    ),
+                    context,
+                    title: 'الاستفسارات', 
+                    icon: Icons.chat_bubble_outline, 
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const TeacherInquiriesScreen()),
+                      );
+                    }
+                  ),
                     _buildDashboardCard(
                       context,
                       title: 'إضافة مجموعة',
@@ -184,12 +196,7 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
                         );
                       },
                     ),
-                    _buildDashboardCard(
-                      context,
-                      title: 'الامتحانات التفاعلية',
-                      icon: Icons.quiz,
-                      onTap: () {},
-                    ),
+
                     _buildDashboardCard(
                       context,
                       title: 'إضافة مساعد',

@@ -3,7 +3,16 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/student_service.dart';
 
 class StudentNotificationsScreen extends StatefulWidget {
-  const StudentNotificationsScreen({super.key});
+  final String teacherId;
+  final String stage;
+  final String groupName;
+
+  const StudentNotificationsScreen({
+    super.key, 
+    required this.teacherId, 
+    required this.stage, 
+    required this.groupName,
+  });
 
   @override
   State<StudentNotificationsScreen> createState() => _StudentNotificationsScreenState();
@@ -11,57 +20,21 @@ class StudentNotificationsScreen extends StatefulWidget {
 
 class _StudentNotificationsScreenState extends State<StudentNotificationsScreen> {
   final StudentService _studentService = StudentService();
-  
-  Map<String, dynamic>? _studentData;
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadStudentData();
-  }
-
-  Future<void> _loadStudentData() async {
-    var data = await _studentService.getStudentData();
-    if (mounted) {
-      setState(() {
-        _studentData = data;
-        _isLoading = false;
-      });
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Scaffold(
-        backgroundColor: Color(0xFFF5F7FA),
-        body: Center(child: CircularProgressIndicator(color: Color(0xFF1B3B5A))),
-      );
-    }
-
-    if (_studentData == null) {
-      return const Scaffold(
-        body: Center(child: Text('حدث خطأ في جلب بيانات الطالب')),
-      );
-    }
-
-    String teacherId = _studentData!['teacherId'] ?? '';
-    String studentStage = _studentData!['stage'] ?? '';
-    String studentGroup = _studentData!['group'] ?? '';
-
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
         backgroundColor: const Color(0xFFF5F7FA),
         appBar: AppBar(
           backgroundColor: const Color(0xFF1B3B5A),
-          title: const Text('الإشعارات', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          title: const Text('الإشعارات والتنبيهات', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           centerTitle: true,
           iconTheme: const IconThemeData(color: Colors.white),
         ),
         body: StreamBuilder<QuerySnapshot>(
-          stream: _studentService.getTeacherNotifications(teacherId),
+          stream: _studentService.getStudentNotifications(widget.teacherId),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
@@ -72,12 +45,25 @@ class _StudentNotificationsScreenState extends State<StudentNotificationsScreen>
             }
 
             var allNotifications = snapshot.data!.docs;
+
             var filteredNotifications = allNotifications.where((doc) {
               try {
-                String targetType = doc.get('targetType');
+                var data = doc.data() as Map<String, dynamic>;
+                String targetType = data['targetType'] ?? 'all';
+
                 if (targetType == 'all') return true;
-                if (targetType == 'stage' && doc.get('stage') == studentStage) return true;
-                if (targetType == 'group' && doc.get('group') == studentGroup) return true;
+                
+                if (targetType == 'stage') {
+                  String? notifStage = data['stage'];
+                  return notifStage == widget.stage;
+                }
+
+                if (targetType == 'group') {
+                  String? notifStage = data['stage'];
+                  String? notifGroup = data['group'];
+                  return notifStage == widget.stage && notifGroup == widget.groupName;
+                }
+
                 return false;
               } catch (e) {
                 return false;
@@ -86,8 +72,8 @@ class _StudentNotificationsScreenState extends State<StudentNotificationsScreen>
 
             filteredNotifications.sort((a, b) {
               try {
-                Timestamp timeA = a.get('timestamp');
-                Timestamp timeB = b.get('timestamp');
+                Timestamp timeA = a.get('timestamp') ?? Timestamp.now();
+                Timestamp timeB = b.get('timestamp') ?? Timestamp.now();
                 return timeB.compareTo(timeA);
               } catch (e) {
                 return 0;
@@ -110,7 +96,7 @@ class _StudentNotificationsScreenState extends State<StudentNotificationsScreen>
                 String timeString = '';
                 if (timestamp != null) {
                   DateTime date = timestamp.toDate();
-                  timeString = "${date.year}-${date.month}-${date.day}";
+                  timeString = "${date.year}-${date.month}-${date.day} | ${date.hour}:${date.minute.toString().padLeft(2, '0')}";
                 }
 
                 return Card(
