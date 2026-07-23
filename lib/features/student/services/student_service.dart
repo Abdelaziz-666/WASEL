@@ -23,17 +23,19 @@ class StudentService {
         .snapshots();
   }
 
-  Stream<QuerySnapshot> getStudentExams(String stage, String groupName) {
+  Stream<QuerySnapshot> getStudentExams(String teacherId, String stage, String groupName) {
     return _firestore
         .collection('exams')
+        .where('teacherId', isEqualTo: teacherId)
         .where('stage', isEqualTo: stage)
         .where('group', isEqualTo: groupName)
         .snapshots();
   }
 
-  Stream<QuerySnapshot> getStudentAttendance(String stage, String groupName) {
+  Stream<QuerySnapshot> getStudentAttendance(String teacherId, String stage, String groupName) {
     return _firestore
         .collection('attendance')
+        .where('teacherId', isEqualTo: teacherId)
         .where('stage', isEqualTo: stage)
         .where('group', isEqualTo: groupName)
         .snapshots();
@@ -135,6 +137,51 @@ class StudentService {
         .where('teacherId', isEqualTo: teacherId)
         .where('stage', isEqualTo: stage)
         .where('group', isEqualTo: groupName)
+        .snapshots();
+  }
+
+  Stream<List<Map<String, dynamic>>> getActiveSubscriptions() {
+    String? uid = _auth.currentUser?.uid;
+    
+    return _firestore
+        .collection('subscriptions')
+        .where('studentId', isEqualTo: uid)
+        .where('status', isEqualTo: 'approved')
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs.map((doc) {
+            return {
+              'id': doc.id,
+              ...doc.data() as Map<String, dynamic>,
+            };
+          }).toList();
+        });
+  }
+
+  Stream<QuerySnapshot> getExamsForTeacher(String teacherId, String stage, String group) {
+    return _firestore
+        .collection('exams')
+        .where('teacherId', isEqualTo: teacherId)
+        .where('stage', isEqualTo: stage)
+        .where('group', isEqualTo: group)
+        .snapshots();
+  }
+
+  Stream<QuerySnapshot> getAttendanceForTeacher(String teacherId, String stage, String group) {
+    return _firestore
+        .collection('attendance')
+        .where('teacherId', isEqualTo: teacherId)
+        .where('stage', isEqualTo: stage)
+        .where('group', isEqualTo: group)
+        .snapshots();
+  }
+
+  Stream<QuerySnapshot> getAssignmentsForTeacher(String teacherId, String stage, String group) {
+    return _firestore
+        .collection('assignments')
+        .where('teacherId', isEqualTo: teacherId)
+        .where('stage', isEqualTo: stage)
+        .where('group', isEqualTo: group)
         .snapshots();
   }
 }

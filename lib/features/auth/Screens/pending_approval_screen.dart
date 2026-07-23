@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import '../../auth/Screens/login_screen.dart';
 class PendingApprovalScreen extends StatelessWidget {
   const PendingApprovalScreen({super.key});
 
@@ -74,7 +74,12 @@ class PendingApprovalScreen extends StatelessWidget {
                       height: 55,
                       child: OutlinedButton(
                         onPressed: () {
-                          Navigator.pop(context);
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const LoginScreen(),
+                            ),
+                          );
                         },
                         style: OutlinedButton.styleFrom(
                           side: const BorderSide(

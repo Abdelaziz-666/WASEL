@@ -25,27 +25,27 @@ class TeacherService {
     }
   }
 
-Future<String> rejectStudent(String uid) async {
-  try {
-    await _firestore.collection('users').doc(uid).update({
-      'status': 'rejected',
-      'rejectedAt': FieldValue.serverTimestamp(),
-    });
-    
-    var subscriptions = await _firestore
-        .collection('subscriptions')
-        .where('studentId', isEqualTo: uid)
-        .get();
-    
-    for (var doc in subscriptions.docs) {
-      await _firestore.collection('subscriptions').doc(doc.id).delete();
+  Future<String> rejectStudent(String uid) async {
+    try {
+      await _firestore.collection('users').doc(uid).update({
+        'status': 'rejected',
+        'rejectedAt': FieldValue.serverTimestamp(),
+      });
+      
+      var subscriptions = await _firestore
+          .collection('subscriptions')
+          .where('studentId', isEqualTo: uid)
+          .get();
+      
+      for (var doc in subscriptions.docs) {
+        await _firestore.collection('subscriptions').doc(doc.id).delete();
+      }
+      
+      return "success";
+    } catch (e) {
+      return "حدث خطأ: $e";
     }
-    
-    return "success";
-  } catch (e) {
-    return "حدث خطأ: $e";
   }
-}
 
   Future<String> addGroup({required String stage, required String groupName}) async {
     try {
@@ -88,17 +88,46 @@ Future<String> rejectStudent(String uid) async {
     }
   }
 
-  Future<QuerySnapshot> getStudentsByGroup(String stage, String groupName) {
+  Stream<List<Map<String, dynamic>>> getStudentsByGroupStream(String stage, String groupName) {
     String teacherId = FirebaseAuth.instance.currentUser!.uid;
-
+    
     return _firestore
-        .collection('users')
-        .where('role', isEqualTo: 'student')
-        .where('status', isEqualTo: 'active')
+        .collection('subscriptions')
+        .where('teacherId', isEqualTo: teacherId)
         .where('stage', isEqualTo: stage)
         .where('group', isEqualTo: groupName)
-        .where('teacherId', isEqualTo: teacherId)
-        .get();
+        .where('status', isEqualTo: 'approved')
+        .snapshots()
+        .asyncMap((snapshot) async {
+          List<Map<String, dynamic>> students = [];
+          
+          for (var subDoc in snapshot.docs) {
+            String studentId = subDoc['studentId'];
+            String studentName = subDoc['studentName'] ?? 'طالب';
+            String studentPhone = subDoc['studentPhone'] ?? '';
+            
+            var userDoc = await _firestore.collection('users').doc(studentId).get();
+            Map<String, dynamic> studentData = {
+              'id': studentId,
+              'name': studentName,
+              'phone': studentPhone,
+              'subscriptionId': subDoc.id,
+            };
+            
+            if (userDoc.exists) {
+              var userData = userDoc.data() as Map<String, dynamic>;
+              studentData.addAll({
+                'fatherPhone': userData['fatherPhone'] ?? '',
+                'motherPhone': userData['motherPhone'] ?? '',
+                'status': userData['status'] ?? 'active',
+              });
+            }
+            
+            students.add(studentData);
+          }
+          
+          return students;
+        });
   }
 
   Future<String> saveAttendance({
@@ -109,8 +138,10 @@ Future<String> rejectStudent(String uid) async {
   }) async {
     try {
       String dateString = "${date.year}-${date.month}-${date.day}";
+      String teacherId = FirebaseAuth.instance.currentUser!.uid;
       
       await _firestore.collection('attendance').add({
+        'teacherId': teacherId,
         'stage': stage,
         'group': groupName,
         'date': dateString,
@@ -133,8 +164,10 @@ Future<String> rejectStudent(String uid) async {
   }) async {
     try {
       String dateString = "${date.year}-${date.month}-${date.day}";
+      String teacherId = FirebaseAuth.instance.currentUser!.uid;
       
       await _firestore.collection('exams').add({
+        'teacherId': teacherId,
         'stage': stage,
         'group': groupName,
         'examName': examName,
@@ -269,8 +302,11 @@ Future<String> rejectStudent(String uid) async {
   Future<Map<String, bool>> getAttendanceForDate(String stage, String groupName, DateTime date) async {
     try {
       String dateString = "${date.year}-${date.month}-${date.day}";
+      String teacherId = FirebaseAuth.instance.currentUser!.uid;
+      
       var snapshot = await _firestore
           .collection('attendance')
+          .where('teacherId', isEqualTo: teacherId)
           .where('stage', isEqualTo: stage)
           .where('group', isEqualTo: groupName)
           .where('date', isEqualTo: dateString)
@@ -287,6 +323,65 @@ Future<String> rejectStudent(String uid) async {
       });
 
       return attendanceMap;
+    } catch (e) {
+      return {};
+    }
+  }
+
+  Future<Map<String, String>> getExamGradesForDate(String stage, String groupName, String examName, DateTime date) async {
+    try {
+      String dateString = "${date.year}-${date.month}-${date.day}";
+      String teacherId = FirebaseAuth.instance.currentUser!.uid;
+      
+      var snapshot = await _firestore
+          .collection('exams')
+          .where('teacherId', isEqualTo: teacherId)
+          .where('stage', isEqualTo: stage)
+          .where('group', isEqualTo: groupName)
+          .where('examName', isEqualTo: examName)
+          .where('date', isEqualTo: dateString)
+          .get();
+
+      if (snapshot.docs.isEmpty) return {};
+
+      var data = snapshot.docs.first.data();
+      Map<String, dynamic> records = data['records'] ?? {};
+      Map<String, String> gradesMap = {};
+      
+      records.forEach((key, value) {
+        gradesMap[key] = value.toString();
+      });
+
+      return gradesMap;
+    } catch (e) {
+      return {};
+    }
+  }
+
+  Future<Map<String, String>> getAssignmentsForDate(String stage, String groupName, DateTime date) async {
+    try {
+      String dateString = "${date.year}-${date.month}-${date.day}";
+      String teacherId = FirebaseAuth.instance.currentUser!.uid;
+      
+      var snapshot = await _firestore
+          .collection('assignments')
+          .where('teacherId', isEqualTo: teacherId)
+          .where('stage', isEqualTo: stage)
+          .where('group', isEqualTo: groupName)
+          .where('date', isEqualTo: dateString)
+          .get();
+
+      if (snapshot.docs.isEmpty) return {};
+
+      var data = snapshot.docs.first.data();
+      Map<String, dynamic> records = data['records'] ?? {};
+      Map<String, String> assignmentsMap = {};
+      
+      records.forEach((key, value) {
+        assignmentsMap[key] = value.toString();
+      });
+
+      return assignmentsMap;
     } catch (e) {
       return {};
     }

@@ -4,10 +4,16 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../services/student_service.dart';
 
 class StudentAttendanceScreen extends StatefulWidget {
+  final String teacherId;
   final String stage;
   final String groupName;
   
-  const StudentAttendanceScreen({super.key, required this.stage, required this.groupName});
+  const StudentAttendanceScreen({
+    super.key, 
+    required this.teacherId,
+    required this.stage, 
+    required this.groupName
+  });
 
   @override
   State<StudentAttendanceScreen> createState() => _StudentAttendanceScreenState();
@@ -25,12 +31,19 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
         backgroundColor: const Color(0xFFF5F7FA),
         appBar: AppBar(
           backgroundColor: const Color(0xFF1B3B5A),
-          title: const Text('سجل الحضور والغياب', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          title: const Text(
+            'سجل الحضور والغياب',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
           centerTitle: true,
           iconTheme: const IconThemeData(color: Colors.white),
         ),
         body: StreamBuilder<QuerySnapshot>(
-          stream: _studentService.getStudentAttendance(widget.stage, widget.groupName),
+          stream: _studentService.getStudentAttendance(
+            widget.teacherId,
+            widget.stage, 
+            widget.groupName
+          ),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
@@ -63,7 +76,9 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
                 return Card(
                   margin: const EdgeInsets.only(bottom: 12),
                   elevation: 2,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Row(
@@ -73,30 +88,61 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
                           children: [
                             Container(
                               padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(color: const Color(0xFFE3F2FD), borderRadius: BorderRadius.circular(12)),
-                              child: const Icon(Icons.calendar_month, color: Color(0xFF1B3B5A)),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE3F2FD),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.calendar_month,
+                                color: Color(0xFF1B3B5A),
+                              ),
                             ),
                             const SizedBox(width: 16),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('حصة دراسية', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1B3B5A))),
+                                const Text(
+                                  'حصة دراسية',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF1B3B5A),
+                                  ),
+                                ),
                                 const SizedBox(height: 4),
-                                Text(dateString, style: const TextStyle(fontSize: 14, color: Colors.grey)),
+                                Text(
+                                  dateString,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey,
+                                  ),
+                                ),
                               ],
                             ),
                           ],
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
                           decoration: BoxDecoration(
-                            color: isPresent ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+                            color: isPresent
+                                ? Colors.green.withOpacity(0.1)
+                                : Colors.red.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: isPresent ? Colors.green : Colors.red, width: 1),
+                            border: Border.all(
+                              color: isPresent ? Colors.green : Colors.red,
+                              width: 1,
+                            ),
                           ),
                           child: Text(
                             isPresent ? 'حاضر' : 'غائب',
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isPresent ? Colors.green : Colors.red),
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: isPresent ? Colors.green : Colors.red,
+                            ),
                           ),
                         ),
                       ],
@@ -118,7 +164,14 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
         children: const [
           Icon(Icons.event_busy, size: 80, color: Colors.grey),
           SizedBox(height: 16),
-          Text('لا توجد سجلات حضور مسجلة حتى الآن', style: TextStyle(fontSize: 18, color: Colors.grey, fontWeight: FontWeight.bold)),
+          Text(
+            'لا توجد سجلات حضور مسجلة حتى الآن',
+            style: TextStyle(
+              fontSize: 18,
+              color: Colors.grey,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ],
       ),
     );

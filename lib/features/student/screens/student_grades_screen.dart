@@ -4,10 +4,16 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../services/student_service.dart';
 
 class StudentGradesScreen extends StatefulWidget {
+  final String teacherId;
   final String stage;
   final String groupName;
 
-  const StudentGradesScreen({super.key, required this.stage, required this.groupName});
+  const StudentGradesScreen({
+    super.key, 
+    required this.teacherId,
+    required this.stage, 
+    required this.groupName
+  });
 
   @override
   State<StudentGradesScreen> createState() => _StudentGradesScreenState();
@@ -30,7 +36,11 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
           iconTheme: const IconThemeData(color: Colors.white),
         ),
         body: StreamBuilder<QuerySnapshot>(
-          stream: _studentService.getStudentExams(widget.stage, widget.groupName),
+          stream: _studentService.getStudentExams(
+            widget.teacherId,
+            widget.stage, 
+            widget.groupName
+          ),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
             if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return _buildEmptyState();

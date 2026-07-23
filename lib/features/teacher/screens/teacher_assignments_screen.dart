@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/teacher_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
 
 class TeacherAssignmentsScreen extends StatefulWidget {
   const TeacherAssignmentsScreen({super.key});
@@ -21,7 +23,7 @@ class _TeacherAssignmentsScreenState extends State<TeacherAssignmentsScreen> {
     'الأول الثانوي', 'الثاني الثانوي', 'الثالث الثانوي'
   ];
 
-  List<DocumentSnapshot> _students = [];
+  List<Map<String, dynamic>> _students = [];
   Map<String, String> _assignmentData = {};
   Map<String, bool> _attendanceMap = {};
   
@@ -33,13 +35,14 @@ class _TeacherAssignmentsScreenState extends State<TeacherAssignmentsScreen> {
     
     setState(() => _isLoadingStudents = true);
     
-    var studentsSnapshot = await _teacherService.getStudentsByGroup(_selectedStage!, _selectedGroup!);
+    List<Map<String, dynamic>> students = await _teacherService.getStudentsByGroupStream(_selectedStage!, _selectedGroup!).first;
     
     Map<String, bool> attendance = await _teacherService.getAttendanceForDate(_selectedStage!, _selectedGroup!, _selectedDate);
 
     String dateString = "${_selectedDate.year}-${_selectedDate.month}-${_selectedDate.day}";
     var assignmentSnapshot = await FirebaseFirestore.instance
         .collection('assignments')
+        .where('teacherId', isEqualTo: FirebaseAuth.instance.currentUser!.uid)
         .where('stage', isEqualTo: _selectedStage)
         .where('group', isEqualTo: _selectedGroup)
         .where('date', isEqualTo: dateString)
@@ -57,12 +60,13 @@ class _TeacherAssignmentsScreenState extends State<TeacherAssignmentsScreen> {
     }
 
     setState(() {
-      _students = studentsSnapshot.docs;
+      _students = students;
       _attendanceMap = attendance;
       _assignmentData.clear();
       
       for (var student in _students) {
-        _assignmentData[student.id] = existingRecords[student.id] ?? 'لم يؤدى';
+        String studentId = student['id'];
+        _assignmentData[studentId] = existingRecords[studentId] ?? 'لم يؤدى';
       }
       _isLoadingStudents = false;
     });
@@ -175,8 +179,8 @@ class _TeacherAssignmentsScreenState extends State<TeacherAssignmentsScreen> {
                           itemCount: _students.length,
                           itemBuilder: (context, index) {
                             var student = _students[index];
-                            String id = student.id;
-                            String name = student['name'];
+                            String id = student['id'];
+                            String name = student['name'] ?? 'طالب';
                             
                             bool isAbsent = _attendanceMap[id] == false;
                             String currentStatus = _assignmentData[id] ?? 'لم يؤدى';

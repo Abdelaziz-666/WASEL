@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../services/teacher_service.dart';
 
 class AttendanceScreen extends StatefulWidget {
@@ -23,7 +24,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   ];
 
   Map<String, bool> _attendanceData = {};
-  List<DocumentSnapshot> _students = [];
+  List<Map<String, dynamic>> _students = [];
   bool _isLoadingStudents = false;
   bool _isSaving = false;
 
@@ -32,12 +33,14 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     
     setState(() => _isLoadingStudents = true);
     
-    var studentsSnapshot = await _teacherService.getStudentsByGroup(_selectedStage!, _selectedGroup!);
+    List<Map<String, dynamic>> students = await _teacherService.getStudentsByGroupStream(_selectedStage!, _selectedGroup!).first;
     
     String dateString = "${_selectedDate.year}-${_selectedDate.month}-${_selectedDate.day}";
 
+    String teacherId = FirebaseAuth.instance.currentUser!.uid;
     var attendanceSnapshot = await FirebaseFirestore.instance
         .collection('attendance')
+        .where('teacherId', isEqualTo: teacherId)
         .where('stage', isEqualTo: _selectedStage)
         .where('group', isEqualTo: _selectedGroup)
         .where('date', isEqualTo: dateString)
@@ -55,11 +58,12 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     }
 
     setState(() {
-      _students = studentsSnapshot.docs;
+      _students = students;
       _attendanceData.clear();
       
       for (var student in _students) {
-        _attendanceData[student.id] = existingRecords[student.id] ?? false; 
+        String studentId = student['id'];
+        _attendanceData[studentId] = existingRecords[studentId] ?? false; 
       }
       _isLoadingStudents = false;
     });
@@ -194,8 +198,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                           itemCount: _students.length,
                           itemBuilder: (context, index) {
                             var student = _students[index];
-                            String studentId = student.id;
-                            String studentName = student['name'];
+                            String studentId = student['id'];
+                            String studentName = student['name'] ?? 'طالب';
 
                             return Card(
                               margin: const EdgeInsets.only(bottom: 8),

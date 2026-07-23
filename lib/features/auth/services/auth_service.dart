@@ -30,11 +30,8 @@ class AuthService {
         'phone': phone,
         'fatherPhone': fatherPhone,
         'motherPhone': motherPhone,
-        'stage': stage,
-        'group': group,
         'role': 'student',
         'status': 'pending',
-        'teacherId': teacherId,
         'createdAt': FieldValue.serverTimestamp(),
       });
 
@@ -145,10 +142,7 @@ class AuthService {
         'phone': phone,
         'fatherPhone': fatherPhone,
         'motherPhone': motherPhone,
-        'stage': stage,
-        'group': group,
         'status': 'pending',
-        'teacherId': teacherId,
       });
 
       DocumentSnapshot teacherDoc = await _firestore.collection('users').doc(teacherId).get();
@@ -171,4 +165,11 @@ class AuthService {
       return "حدث خطأ: $e";
     }
   }
+
+
+
+
+
+
+
 }

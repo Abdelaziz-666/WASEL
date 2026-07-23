@@ -143,14 +143,15 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                     title: 'حضور الحصة', 
                     icon: Icons.calendar_month_outlined, 
                     onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => StudentAttendanceScreen(
-                          stage: widget.stage, 
-                          groupName: widget.groupName
-                        )),
-                      );
-                    }
+  Navigator.push(
+    context,
+    MaterialPageRoute(builder: (context) => StudentAttendanceScreen(
+      teacherId: widget.teacherId,  
+      stage: widget.stage, 
+      groupName: widget.groupName
+    )),
+  );
+}
                   ),
                  _buildDashboardItem(
                     title: 'أداء الواجبات', 
@@ -172,15 +173,16 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                   _buildDashboardItem(
                     title: 'درجاتي', 
                     icon: Icons.workspace_premium_outlined, 
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => StudentGradesScreen(
-                          stage: widget.stage, 
-                          groupName: widget.groupName
-                        )),
-                      );
-                    }
+                   onTap: () {
+  Navigator.push(
+    context,
+    MaterialPageRoute(builder: (context) => StudentGradesScreen(
+      teacherId: widget.teacherId, 
+      stage: widget.stage, 
+      groupName: widget.groupName
+    )),
+  );
+}
                   ),
                   _buildDashboardItem(
                     title: 'إشعارات', 

@@ -28,7 +28,7 @@ class _ExamGradesScreenState extends State<ExamGradesScreen> {
 
   Map<String, String> _gradesData = {};
   
-  List<DocumentSnapshot> _students = [];
+  List<Map<String, dynamic>> _students = [];
   bool _isLoadingStudents = false;
   bool _isSaving = false;
 
@@ -37,13 +37,13 @@ class _ExamGradesScreenState extends State<ExamGradesScreen> {
     
     setState(() => _isLoadingStudents = true);
     
-    var snapshot = await _teacherService.getStudentsByGroup(_selectedStage!, _selectedGroup!);
+    List<Map<String, dynamic>> students = await _teacherService.getStudentsByGroupStream(_selectedStage!, _selectedGroup!).first;
     
     setState(() {
-      _students = snapshot.docs;
+      _students = students;
       _gradesData.clear();
       for (var student in _students) {
-        _gradesData[student.id] = ""; 
+        _gradesData[student['id']] = ""; 
       }
       _isLoadingStudents = false;
     });
@@ -198,7 +198,8 @@ class _ExamGradesScreenState extends State<ExamGradesScreen> {
                             itemCount: _students.length,
                             itemBuilder: (context, index) {
                               var student = _students[index];
-                              String studentId = student.id;
+                              String studentId = student['id'];
+                              String studentName = student['name'] ?? 'طالب';
 
                               return Card(
                                 margin: const EdgeInsets.only(bottom: 8),
@@ -208,7 +209,7 @@ class _ExamGradesScreenState extends State<ExamGradesScreen> {
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Text(student['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                      Text(studentName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                                       SizedBox(
                                         width: 80,
                                         child: TextFormField(

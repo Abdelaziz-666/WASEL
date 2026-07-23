@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'review_requests_screen.dart';
+import 'pending_requests_screen.dart';
 import 'add_group_screen.dart';
 import 'attendance_screen.dart';
 import 'exam_grades_screen.dart';
@@ -117,7 +117,7 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => ReviewRequestsScreen(),
+                            builder: (context) => PendingRequestsScreen(),
                           ),
                         );
                       },
