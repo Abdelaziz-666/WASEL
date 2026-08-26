@@ -36,7 +36,13 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen> {
           iconTheme: const IconThemeData(color: Colors.white),
         ),
         body: StreamBuilder<QuerySnapshot>(
-          stream: _studentService.getStudentAssignments(widget.teacherId, widget.stage, widget.groupName),
+          stream: _studentService.getAssignmentsForTeacher(
+            widget.teacherId, 
+            widget.stage, 
+            widget.groupName, 
+            DateTime.now().year, 
+            DateTime.now().month,
+          ),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
@@ -58,8 +64,8 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen> {
             var assignments = snapshot.data!.docs;
             assignments.sort((a, b) {
               try {
-                Timestamp timeA = a.get('timestamp');
-                Timestamp timeB = b.get('timestamp');
+                Timestamp timeA = a.get('timestamp') ?? a.get('date');
+                Timestamp timeB = b.get('timestamp') ?? b.get('date');
                 return timeB.compareTo(timeA);
               } catch (e) {
                 return 0;

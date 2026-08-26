@@ -12,7 +12,7 @@ class StudentGradesScreen extends StatefulWidget {
     super.key, 
     required this.teacherId,
     required this.stage, 
-    required this.groupName
+    required this.groupName,
   });
 
   @override
@@ -36,20 +36,26 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
           iconTheme: const IconThemeData(color: Colors.white),
         ),
         body: StreamBuilder<QuerySnapshot>(
-          stream: _studentService.getStudentExams(
-            widget.teacherId,
+          stream: _studentService.getExamsForTeacher(
+            widget.teacherId, 
             widget.stage, 
-            widget.groupName
+            widget.groupName, 
+            DateTime.now().year, 
+            DateTime.now().month,
           ),
           builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return _buildEmptyState();
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+              return _buildEmptyState();
+            }
 
             var allExams = snapshot.data!.docs;
             allExams.sort((a, b) {
               try {
-                Timestamp timeA = a.get('timestamp');
-                Timestamp timeB = b.get('timestamp');
+                Timestamp timeA = a.get('timestamp') ?? a.get('date');
+                Timestamp timeB = b.get('timestamp') ?? b.get('date');
                 return timeB.compareTo(timeA);
               } catch (e) {
                 return 0;

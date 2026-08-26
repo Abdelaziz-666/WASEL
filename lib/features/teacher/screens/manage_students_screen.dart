@@ -16,7 +16,6 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
   String? _selectedStage;
   String? _selectedGroup;
   
-  // متغيرات الشهر والسنة
   int _selectedYear = DateTime.now().year;
   int _selectedMonth = DateTime.now().month;
 
@@ -44,6 +43,88 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
     });
   }
 
+  void _showMoveGroupDialog(String studentId, String studentName) {
+    String? targetGroup;
+    showDialog(
+      context: context,
+      builder: (context) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          title: Text('نقل الطالب: $studentName'),
+          content: StreamBuilder<QuerySnapshot>(
+            stream: _teacherService.getGroupsByStage(_selectedStage!),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) return const CircularProgressIndicator();
+              var groups = snapshot.data!.docs;
+              return DropdownButtonFormField<String>(
+                decoration: InputDecoration(
+                  hintText: 'اختر المجموعة الجديدة',
+                  filled: true,
+                  fillColor: const Color(0xFFF0F2F5),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                ),
+                items: groups.map((g) {
+                  String name = g['groupName'];
+                  return DropdownMenuItem(value: name, child: Text(name));
+                }).toList(),
+                onChanged: (val) => targetGroup = val,
+              );
+            },
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2B4D7E)),
+              onPressed: () async {
+                if (targetGroup == null) return;
+                String result = await _teacherService.updateStudentGroup(studentId: studentId, newGroup: targetGroup!);
+                if (!mounted) return;
+                Navigator.pop(context);
+                if (result == "success") {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم نقل الطالب بنجاح'), backgroundColor: Colors.green));
+                  _fetchStudents();
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result), backgroundColor: Colors.red));
+                }
+              },
+              child: const Text('تأكيد النقل', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showDeleteStudentDialog(String studentId, String studentName) {
+    showDialog(
+      context: context,
+      builder: (context) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          title: const Text('حذف الطالب'),
+          content: Text('هل أنت متأكد من إزالة الطالب $studentName من مجموعاتك؟'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                String result = await _teacherService.removeStudentFromTeacher(studentId);
+                if (!mounted) return;
+                if (result == "success") {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم إزالة الطالب بنجاح'), backgroundColor: Colors.green));
+                  _fetchStudents();
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result), backgroundColor: Colors.red));
+                }
+              },
+              child: const Text('حذف', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Directionality(
@@ -63,7 +144,6 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  // اختيار السنة والشهر
                   Row(
                     children: [
                       Expanded(
@@ -152,7 +232,34 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                                 ),
                                 title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF1B3B5A))),
                                 subtitle: Text(phone, style: const TextStyle(color: Colors.grey)),
-                                trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                                trailing: PopupMenuButton<String>(
+                                  onSelected: (value) {
+                                    if (value == 'report') {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => StudentReportScreen(
+                                            studentId: id,
+                                            studentName: name,
+                                            stage: _selectedStage!,
+                                            groupName: _selectedGroup!,
+                                            year: _selectedYear,
+                                            month: _selectedMonth,
+                                          ),
+                                        ),
+                                      );
+                                    } else if (value == 'move') {
+                                      _showMoveGroupDialog(id, name);
+                                    } else if (value == 'delete') {
+                                      _showDeleteStudentDialog(id, name);
+                                    }
+                                  },
+                                  itemBuilder: (context) => [
+                                    const PopupMenuItem(value: 'report', child: Text('عرض التقرير')),
+                                    const PopupMenuItem(value: 'move', child: Text('نقل لمجموعة أخرى')),
+                                    const PopupMenuItem(value: 'delete', child: Text('إزالة الطالب', style: TextStyle(color: Colors.red))),
+                                  ],
+                                ),
                                 onTap: () {
                                   Navigator.push(
                                     context,
@@ -162,8 +269,8 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                                         studentName: name,
                                         stage: _selectedStage!,
                                         groupName: _selectedGroup!,
-                                        year: _selectedYear,     // 👈 بنبعت السنة
-                                        month: _selectedMonth,   // 👈 بنبعت الشهر
+                                        year: _selectedYear,
+                                        month: _selectedMonth,
                                       ),
                                     ),
                                   );

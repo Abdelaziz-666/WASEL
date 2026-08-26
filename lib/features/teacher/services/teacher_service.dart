@@ -3,9 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 class TeacherService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-
+final FirebaseAuth _auth = FirebaseAuth.instance;
   Stream<QuerySnapshot> getPendingStudents() {
-    String teacherId = FirebaseAuth.instance.currentUser!.uid;
+    String teacherId = _auth.currentUser!.uid;
     
     return _firestore
         .collection('users')
@@ -49,7 +49,7 @@ class TeacherService {
 
   Future<String> addGroup({required String stage, required String groupName}) async {
     try {
-      String teacherId = FirebaseAuth.instance.currentUser!.uid; 
+      String teacherId = _auth.currentUser!.uid; 
 
       await _firestore.collection('groups').add({
         'stage': stage,
@@ -64,7 +64,7 @@ class TeacherService {
   }
 
   Stream<QuerySnapshot> getGroups() {
-    String teacherId = FirebaseAuth.instance.currentUser!.uid;
+    String teacherId = _auth.currentUser!.uid;
     return _firestore
         .collection('groups')
         .where('teacherId', isEqualTo: teacherId)
@@ -72,7 +72,7 @@ class TeacherService {
   }
 
   Stream<QuerySnapshot> getGroupsByStage(String stage) {
-    String teacherId = FirebaseAuth.instance.currentUser!.uid;
+    String teacherId = _auth.currentUser!.uid;
     return _firestore
         .collection('groups')
         .where('teacherId', isEqualTo: teacherId)
@@ -89,7 +89,7 @@ class TeacherService {
   }
 
   Stream<List<Map<String, dynamic>>> getStudentsByGroupStream(String stage, String groupName) {
-    String teacherId = FirebaseAuth.instance.currentUser!.uid;
+    String teacherId = _auth.currentUser!.uid;
     
     return _firestore
         .collection('subscriptions')
@@ -140,7 +140,6 @@ Future<String> saveAttendance({
       String dateString = "${date.year}-${date.month}-${date.day}";
       String teacherId = FirebaseAuth.instance.currentUser!.uid;
       
-      // 1. نبحث الأول لو في سجل حضور متسجل لنفس اليوم والمجموعة دي
       var existing = await _firestore
           .collection('attendance')
           .where('teacherId', isEqualTo: teacherId)
@@ -150,13 +149,11 @@ Future<String> saveAttendance({
           .get();
 
       if (existing.docs.isNotEmpty) {
-        // 2. لو السجل موجود، بنعمل تحديث (Update) على نفس السجل القديم
         await _firestore.collection('attendance').doc(existing.docs.first.id).update({
           'records': attendanceRecords,
           'timestamp': FieldValue.serverTimestamp(),
         });
       } else {
-        // 3. لو مش موجود (أول مرة يسجل حضور اليوم ده)، بنضيف سجل جديد
         await _firestore.collection('attendance').add({
           'teacherId': teacherId,
           'stage': stage,
@@ -183,25 +180,22 @@ Future<String> saveExamGrades({
       String dateString = "${date.year}-${date.month}-${date.day}";
       String teacherId = FirebaseAuth.instance.currentUser!.uid;
       
-      // 1. نبحث لو الامتحان ده (بنفس الاسم والتاريخ والمجموعة) متسجل قبل كده
       var existing = await _firestore
           .collection('exams')
           .where('teacherId', isEqualTo: teacherId)
           .where('stage', isEqualTo: stage)
           .where('group', isEqualTo: groupName)
-          .where('examName', isEqualTo: examName) // بنبحث باسم الامتحان كمان
+          .where('examName', isEqualTo: examName)
           .where('date', isEqualTo: dateString)
           .get();
 
       if (existing.docs.isNotEmpty) {
-        // 2. لو موجود، نعمل Update للدرجات
         await _firestore.collection('exams').doc(existing.docs.first.id).update({
-          'maxGrade': maxGrade, // ربما يكون عدل الدرجة النهائية كمان
+          'maxGrade': maxGrade,
           'records': gradesRecords, 
           'timestamp': FieldValue.serverTimestamp(),
         });
       } else {
-        // 3. لو مش موجود، نضيفه كأنه امتحان جديد
         await _firestore.collection('exams').add({
           'teacherId': teacherId,
           'stage': stage,
@@ -555,6 +549,62 @@ Future<String> saveExamGrades({
           'records': paymentRecords,
           'timestamp': FieldValue.serverTimestamp(),
         });
+      }
+      return "success";
+    } catch (e) {
+      return e.toString();
+    }
+  }
+
+  Future<Map<String, bool>> getAttendanceRecordsForDate(String stage, String groupName, DateTime date) async {
+    try {
+      String dateString = "${date.year}-${date.month}-${date.day}";
+      String teacherId = FirebaseAuth.instance.currentUser!.uid;
+      
+      var snapshot = await _firestore
+          .collection('attendance')
+          .where('teacherId', isEqualTo: teacherId)
+          .where('stage', isEqualTo: stage)
+          .where('group', isEqualTo: groupName)
+          .where('date', isEqualTo: dateString)
+          .get();
+
+      if (snapshot.docs.isEmpty) return {};
+
+      var data = snapshot.docs.first.data();
+      Map<String, dynamic> records = data['records'] ?? {};
+      Map<String, bool> attendanceMap = {};
+      
+      records.forEach((key, value) {
+        attendanceMap[key] = value == true;
+      });
+
+      return attendanceMap;
+    } catch (e) {
+      return {};
+    }
+  }
+
+  Future<String> updateStudentGroup({required String studentId, required String newGroup}) async {
+    try {
+      var subQuery = await _firestore.collection('subscriptions').where('studentId', isEqualTo: studentId).where('teacherId', isEqualTo: _auth.currentUser!.uid).get();
+      for (var doc in subQuery.docs) {
+        await doc.reference.update({'group': newGroup});
+      }
+      
+      await _firestore.collection('users').doc(studentId).update({'group': newGroup});
+      
+      return "success";
+    } catch (e) {
+      return e.toString();
+    }
+  }
+
+  Future<String> removeStudentFromTeacher(String studentId) async {
+    try {
+      var subQuery = await _firestore.collection('subscriptions').where('studentId', isEqualTo: studentId).where('teacherId', isEqualTo: _auth.currentUser!.uid).get();
+      for (var doc in subQuery.docs) {
+        await doc.reference.delete();
       }
       return "success";
     } catch (e) {

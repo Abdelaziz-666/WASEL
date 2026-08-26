@@ -7,7 +7,6 @@ class AuthBackgroundCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // استخدمنا GestureDetector عشان لما اليوزر يضغط في أي مكان فاضي، الكيبورد تنزل (UX ممتاز)
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
@@ -39,7 +38,7 @@ class AuthBackgroundCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  child: child, // هنا بنحط محتوى الشاشة
+                  child: child,
                 ),
               ),
             ),

@@ -33,7 +33,6 @@ class _TeacherAssignmentsScreenState extends State<TeacherAssignmentsScreen> {
     
     setState(() => _isLoadingStudents = true);
     
-    // استخدام الـ Services بدلاً من كتابة كود Firestore المباشر
     List<Map<String, dynamic>> students = await _teacherService.getStudentsByGroupStream(_selectedStage!, _selectedGroup!).first;
     Map<String, bool> attendance = await _teacherService.getAttendanceForDate(_selectedStage!, _selectedGroup!, _selectedDate);
     Map<String, String> existingRecords = await _teacherService.getAssignmentsForDate(_selectedStage!, _selectedGroup!, _selectedDate);

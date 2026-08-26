@@ -45,7 +45,6 @@ class _StudentSubscriptionsScreenState extends State<StudentSubscriptionsScreen>
         ),
         body: Column(
           children: [
-            // فلتر السنة
             Container(
               color: Colors.white,
               padding: const EdgeInsets.all(16),
@@ -69,7 +68,6 @@ class _StudentSubscriptionsScreenState extends State<StudentSubscriptionsScreen>
             ),
             const SizedBox(height: 8),
 
-            // قائمة الشهور
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
                 stream: _studentService.getStudentPayments(widget.teacherId, widget.stage, widget.groupName, _selectedYear),
@@ -78,7 +76,6 @@ class _StudentSubscriptionsScreenState extends State<StudentSubscriptionsScreen>
                     return const Center(child: CircularProgressIndicator());
                   }
 
-                  // تجهيز خريطة (Map) للشهور اللي المدرس سجلها
                   Map<int, bool> monthPayments = {};
                   
                   if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
@@ -86,7 +83,6 @@ class _StudentSubscriptionsScreenState extends State<StudentSubscriptionsScreen>
                       int month = doc['month'];
                       Map<String, dynamic> records = doc['records'] ?? {};
                       
-                      // بنتشيك على حالة الدفع للطالب الحالي فقط!
                       if (currentUserId != null && records.containsKey(currentUserId)) {
                         monthPayments[month] = records[currentUserId] == true;
                       }
@@ -95,12 +91,10 @@ class _StudentSubscriptionsScreenState extends State<StudentSubscriptionsScreen>
 
                   return ListView.builder(
                     padding: const EdgeInsets.all(16),
-                    itemCount: 12, // بنعرض الـ 12 شهر دايماً
+                    itemCount: 12,
                     itemBuilder: (context, index) {
                       int currentMonthNumber = index + 1;
                       bool isPaid = monthPayments[currentMonthNumber] == true;
-                      
-                      // إذا المدرس لم يسجل بيانات هذا الشهر بعد
                       bool isNotRecordedYet = !monthPayments.containsKey(currentMonthNumber);
 
                       return Card(

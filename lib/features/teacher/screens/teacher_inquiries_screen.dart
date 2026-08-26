@@ -12,6 +12,8 @@ class TeacherInquiriesScreen extends StatefulWidget {
 class _TeacherInquiriesScreenState extends State<TeacherInquiriesScreen> {
   final TeacherService _teacherService = TeacherService();
   bool _isSending = false;
+  
+  String _searchQuery = '';
 
   void _showReplyDialog(String inquiryId, String studentName, String question) {
     TextEditingController answerController = TextEditingController();
@@ -102,29 +104,57 @@ class _TeacherInquiriesScreenState extends State<TeacherInquiriesScreen> {
               ],
             ),
           ),
-          body: StreamBuilder<QuerySnapshot>(
-            stream: _teacherService.getTeacherInquiries(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                return const Center(child: Text('لا توجد استفسارات حتى الآن', style: TextStyle(color: Colors.grey, fontSize: 16)));
-              }
+          body: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: TextField(
+                  onChanged: (value) => setState(() => _searchQuery = value.trim().toLowerCase()),
+                  decoration: InputDecoration(
+                    hintText: 'ابحث باسم الطالب أو نص السؤال...',
+                    prefixIcon: const Icon(Icons.search, color: Color(0xFF1B3B5A)),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: StreamBuilder<QuerySnapshot>(
+                  stream: _teacherService.getTeacherInquiries(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return const Center(child: Text('لا توجد استفسارات حتى الآن', style: TextStyle(color: Colors.grey, fontSize: 16)));
+                    }
 
-              var inquiries = snapshot.data!.docs;
-              
-              var pendingInquiries = inquiries.where((doc) => (doc['answer'] ?? '').toString().isEmpty).toList();
-              var answeredInquiries = inquiries.where((doc) => (doc['answer'] ?? '').toString().isNotEmpty).toList();
+                    var inquiries = snapshot.data!.docs;
 
-              pendingInquiries.sort((a, b) => (b['timestamp'] as Timestamp? ?? Timestamp.now()).compareTo(a['timestamp'] as Timestamp? ?? Timestamp.now()));
-              answeredInquiries.sort((a, b) => (b['timestamp'] as Timestamp? ?? Timestamp.now()).compareTo(a['timestamp'] as Timestamp? ?? Timestamp.now()));
+                    if (_searchQuery.isNotEmpty) {
+                      inquiries = inquiries.where((doc) {
+                        String name = (doc['studentName'] ?? '').toString().toLowerCase();
+                        String question = (doc['question'] ?? '').toString().toLowerCase();
+                        return name.contains(_searchQuery) || question.contains(_searchQuery);
+                      }).toList();
+                    }
+                    
+                    var pendingInquiries = inquiries.where((doc) => (doc['answer'] ?? '').toString().isEmpty).toList();
+                    var answeredInquiries = inquiries.where((doc) => (doc['answer'] ?? '').toString().isNotEmpty).toList();
 
-              return TabBarView(
-                children: [
-                  _buildInquiriesList(pendingInquiries, isAnswered: false),
-                  _buildInquiriesList(answeredInquiries, isAnswered: true),
-                ],
-              );
-            },
+                    pendingInquiries.sort((a, b) => (b['timestamp'] as Timestamp? ?? Timestamp.now()).compareTo(a['timestamp'] as Timestamp? ?? Timestamp.now()));
+                    answeredInquiries.sort((a, b) => (b['timestamp'] as Timestamp? ?? Timestamp.now()).compareTo(a['timestamp'] as Timestamp? ?? Timestamp.now()));
+
+                    return TabBarView(
+                      children: [
+                        _buildInquiriesList(pendingInquiries, isAnswered: false),
+                        _buildInquiriesList(answeredInquiries, isAnswered: true),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -142,7 +172,7 @@ class _TeacherInquiriesScreenState extends State<TeacherInquiriesScreen> {
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       itemCount: list.length,
       itemBuilder: (context, index) {
         var inquiry = list[index];

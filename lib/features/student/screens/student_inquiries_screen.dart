@@ -18,6 +18,7 @@ class _StudentInquiriesScreenState extends State<StudentInquiriesScreen> {
   String studentName = 'طالب';
   bool _isLoading = true;
   bool _isSending = false;
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -78,6 +79,20 @@ class _StudentInquiriesScreenState extends State<StudentInquiriesScreen> {
           ),
           body: Column(
             children: [
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: TextField(
+                  onChanged: (value) => setState(() => _searchQuery = value.trim().toLowerCase()),
+                  decoration: InputDecoration(
+                    hintText: 'ابحث في استفساراتك...',
+                    prefixIcon: const Icon(Icons.search, color: Color(0xFF1B3B5A)),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
               Expanded(
                 child: StreamBuilder<QuerySnapshot>(
                   stream: _studentService.getStudentInquiries(),
@@ -89,11 +104,18 @@ class _StudentInquiriesScreenState extends State<StudentInquiriesScreen> {
                     }
 
                     var inquiries = snapshot.data!.docs;
-                    
                     var teacherInquiries = inquiries.where((doc) => doc['teacherId'] == widget.teacherId).toList();
 
                     if (teacherInquiries.isEmpty) {
                       return const Center(child: Text('لم ترسل أي استفسار لهذا المدرس بعد', style: TextStyle(color: Colors.grey, fontSize: 16)));
+                    }
+
+                    if (_searchQuery.isNotEmpty) {
+                      teacherInquiries = teacherInquiries.where((doc) {
+                        String question = (doc['question'] ?? '').toString().toLowerCase();
+                        String answer = (doc['answer'] ?? '').toString().toLowerCase();
+                        return question.contains(_searchQuery) || answer.contains(_searchQuery);
+                      }).toList();
                     }
 
                     var answeredInquiries = teacherInquiries.where((doc) => (doc['answer'] ?? '').toString().isNotEmpty).toList();

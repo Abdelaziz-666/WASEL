@@ -23,21 +23,30 @@ class StudentService {
         .snapshots();
   }
 
-  Stream<QuerySnapshot> getStudentExams(String teacherId, String stage, String groupName) {
+  Stream<QuerySnapshot> getExamsForTeacher(String teacherId, String stage, String group, int year, int month) {
     return _firestore
         .collection('exams')
         .where('teacherId', isEqualTo: teacherId)
         .where('stage', isEqualTo: stage)
-        .where('group', isEqualTo: groupName)
+        .where('group', isEqualTo: group)
         .snapshots();
   }
 
-  Stream<QuerySnapshot> getStudentAttendance(String teacherId, String stage, String groupName) {
+  Stream<QuerySnapshot> getAttendanceForTeacher(String teacherId, String stage, String group, int year, int month) {
     return _firestore
         .collection('attendance')
         .where('teacherId', isEqualTo: teacherId)
         .where('stage', isEqualTo: stage)
-        .where('group', isEqualTo: groupName)
+        .where('group', isEqualTo: group)
+        .snapshots();
+  }
+
+  Stream<QuerySnapshot> getAssignmentsForTeacher(String teacherId, String stage, String group, int year, int month) {
+    return _firestore
+        .collection('assignments')
+        .where('teacherId', isEqualTo: teacherId)
+        .where('stage', isEqualTo: stage)
+        .where('group', isEqualTo: group)
         .snapshots();
   }
 
@@ -67,7 +76,8 @@ class StudentService {
   }
 
   Stream<QuerySnapshot> getStudentInquiries() {
-    String uid = _auth.currentUser!.uid;
+    String? uid = _auth.currentUser?.uid;
+    if (uid == null) return const Stream.empty();
     return _firestore
         .collection('inquiries')
         .where('studentId', isEqualTo: uid)
@@ -84,6 +94,7 @@ class StudentService {
 
   Stream<QuerySnapshot> getStudentSubscriptions() {
     String? uid = _auth.currentUser?.uid;
+    if (uid == null) return const Stream.empty();
     return _firestore
         .collection('subscriptions')
         .where('studentId', isEqualTo: uid)
@@ -131,17 +142,9 @@ class StudentService {
     }
   }
 
-  Stream<QuerySnapshot> getStudentAssignments(String teacherId, String stage, String groupName) {
-    return _firestore
-        .collection('assignments')
-        .where('teacherId', isEqualTo: teacherId)
-        .where('stage', isEqualTo: stage)
-        .where('group', isEqualTo: groupName)
-        .snapshots();
-  }
-
   Stream<List<Map<String, dynamic>>> getActiveSubscriptions() {
     String? uid = _auth.currentUser?.uid;
+    if (uid == null) return Stream.value([]);
     
     return _firestore
         .collection('subscriptions')
@@ -158,35 +161,6 @@ class StudentService {
         });
   }
 
-  Stream<QuerySnapshot> getExamsForTeacher(String teacherId, String stage, String group) {
-    return _firestore
-        .collection('exams')
-        .where('teacherId', isEqualTo: teacherId)
-        .where('stage', isEqualTo: stage)
-        .where('group', isEqualTo: group)
-        .snapshots();
-  }
-
-  Stream<QuerySnapshot> getAttendanceForTeacher(String teacherId, String stage, String group) {
-    return _firestore
-        .collection('attendance')
-        .where('teacherId', isEqualTo: teacherId)
-        .where('stage', isEqualTo: stage)
-        .where('group', isEqualTo: group)
-        .snapshots();
-  }
-
-  Stream<QuerySnapshot> getAssignmentsForTeacher(String teacherId, String stage, String group) {
-    return _firestore
-        .collection('assignments')
-        .where('teacherId', isEqualTo: teacherId)
-        .where('stage', isEqualTo: stage)
-        .where('group', isEqualTo: group)
-        .snapshots();
-  }
-
-
-  // جلب اشتراكات الطالب لسنة معينة مع مدرس معين
   Stream<QuerySnapshot> getStudentPayments(String teacherId, String stage, String groupName, int year) {
     return _firestore
         .collection('payments')
