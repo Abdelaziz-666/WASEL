@@ -7,7 +7,7 @@ import 'student_grades_screen.dart';
 import 'student_attendance_screen.dart';
 import 'student_inquiries_screen.dart';
 import 'student_assignments_screen.dart';
-
+import 'student_subscriptions_screen.dart';
 class StudentDashboardScreen extends StatefulWidget {
   final String teacherId;
   final String teacherName;
@@ -198,8 +198,22 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                       );
                     }
                   ),
-                  _buildDashboardItem(title: 'اشتراكات', icon: Icons.credit_card, onTap: () {}),
-                  
+_buildDashboardItem(
+                    title: 'اشتراكات', 
+                    icon: Icons.credit_card, 
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => StudentSubscriptionsScreen(
+                            teacherId: widget.teacherId,
+                            stage: widget.stage,
+                            groupName: widget.groupName,
+                          ),
+                        ),
+                      );
+                    }
+                  ),                  
                   const Divider(height: 40, thickness: 1.5, color: Colors.black12),
                   
                   _buildDashboardItem(

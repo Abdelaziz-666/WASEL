@@ -184,4 +184,16 @@ class StudentService {
         .where('group', isEqualTo: group)
         .snapshots();
   }
+
+
+  // جلب اشتراكات الطالب لسنة معينة مع مدرس معين
+  Stream<QuerySnapshot> getStudentPayments(String teacherId, String stage, String groupName, int year) {
+    return _firestore
+        .collection('payments')
+        .where('teacherId', isEqualTo: teacherId)
+        .where('stage', isEqualTo: stage)
+        .where('group', isEqualTo: groupName)
+        .where('year', isEqualTo: year)
+        .snapshots();
+  }
 }
