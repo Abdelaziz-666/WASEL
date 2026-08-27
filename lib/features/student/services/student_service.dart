@@ -170,4 +170,17 @@ class StudentService {
         .where('year', isEqualTo: year)
         .snapshots();
   }
+
+  Stream<QuerySnapshot> getAnsweredInquiries() {
+    String? uid = _auth.currentUser?.uid;
+    if (uid == null) return const Stream.empty();
+    
+    return _firestore
+        .collection('inquiries')
+        .where('studentId', isEqualTo: uid)
+        .where('status', isEqualTo: 'answered') 
+        .snapshots();
+  }
+
+  
 }

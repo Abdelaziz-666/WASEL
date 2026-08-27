@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../auth/Screens/login_screen.dart';
+import '../services/student_service.dart'; 
 import 'student_notifications_screen.dart';
 import 'student_grades_screen.dart';
 import 'student_attendance_screen.dart';
 import 'student_inquiries_screen.dart';
 import 'student_assignments_screen.dart';
 import 'student_subscriptions_screen.dart';
+
 class StudentDashboardScreen extends StatefulWidget {
   final String teacherId;
   final String teacherName;
@@ -27,6 +29,7 @@ class StudentDashboardScreen extends StatefulWidget {
 }
 
 class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
+  final StudentService _studentService = StudentService(); 
   String studentName = 'جاري التحميل...';
   String studentPhone = '...';
   bool isLoading = true;
@@ -143,17 +146,17 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                     title: 'حضور الحصة', 
                     icon: Icons.calendar_month_outlined, 
                     onTap: () {
-  Navigator.push(
-    context,
-    MaterialPageRoute(builder: (context) => StudentAttendanceScreen(
-      teacherId: widget.teacherId,  
-      stage: widget.stage, 
-      groupName: widget.groupName
-    )),
-  );
-}
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => StudentAttendanceScreen(
+                          teacherId: widget.teacherId,  
+                          stage: widget.stage, 
+                          groupName: widget.groupName
+                        )),
+                      );
+                    }
                   ),
-                 _buildDashboardItem(
+                  _buildDashboardItem(
                     title: 'أداء الواجبات', 
                     icon: Icons.edit_note, 
                     onTap: () {
@@ -169,24 +172,25 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                       );
                     },
                   ),
-             
                   _buildDashboardItem(
                     title: 'درجاتي', 
                     icon: Icons.workspace_premium_outlined, 
-                   onTap: () {
-  Navigator.push(
-    context,
-    MaterialPageRoute(builder: (context) => StudentGradesScreen(
-      teacherId: widget.teacherId, 
-      stage: widget.stage, 
-      groupName: widget.groupName
-    )),
-  );
-}
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => StudentGradesScreen(
+                          teacherId: widget.teacherId, 
+                          stage: widget.stage, 
+                          groupName: widget.groupName
+                        )),
+                      );
+                    }
                   ),
+                  
                   _buildDashboardItem(
                     title: 'إشعارات', 
                     icon: Icons.notifications_none, 
+                    badgeStream: _studentService.getStudentNotifications(widget.teacherId), 
                     onTap: () {
                       Navigator.push(
                         context,
@@ -198,7 +202,8 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                       );
                     }
                   ),
-_buildDashboardItem(
+
+                  _buildDashboardItem(
                     title: 'اشتراكات', 
                     icon: Icons.credit_card, 
                     onTap: () {
@@ -219,6 +224,7 @@ _buildDashboardItem(
                   _buildDashboardItem(
                     title: 'الاستفسارات', 
                     icon: Icons.chat_bubble_outline, 
+                    badgeStream: _studentService.getAnsweredInquiries(),
                     onTap: () {
                       Navigator.push(
                         context,
@@ -238,7 +244,12 @@ _buildDashboardItem(
     );
   }
 
-  Widget _buildDashboardItem({required String title, required IconData icon, required VoidCallback onTap}) {
+  Widget _buildDashboardItem({
+    required String title, 
+    required IconData icon, 
+    required VoidCallback onTap,
+    Stream<QuerySnapshot>? badgeStream, 
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -253,10 +264,37 @@ _buildDashboardItem(
         ),
         child: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: const Color(0xFFE3F2FD), borderRadius: BorderRadius.circular(10)),
-              child: Icon(icon, color: const Color(0xFF1B3B5A), size: 24),
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(color: const Color(0xFFE3F2FD), borderRadius: BorderRadius.circular(10)),
+                  child: Icon(icon, color: const Color(0xFF1B3B5A), size: 24),
+                ),
+                
+                if (badgeStream != null)
+                  StreamBuilder<QuerySnapshot>(
+                    stream: badgeStream,
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const SizedBox.shrink();
+                      
+                      int count = snapshot.data!.docs.length;
+                      return Positioned(
+                        top: -5,
+                        right: -5,
+                        child: Container(
+                          padding: const EdgeInsets.all(5),
+                          decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                          child: Text(
+                            count.toString(),
+                            style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+              ],
             ),
             const SizedBox(width: 16),
             Expanded(child: Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1B3B5A)))),
