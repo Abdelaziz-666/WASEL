@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-// تعديل المسارات الصحيحة بناءً على مكان ملف auth_gate.dart الحالي
+
 import 'login_screen.dart';
 import '../../teacher/screens/teacher_dashboard_screen.dart';
 import '../../student/screens/student_teachers_screen.dart';
@@ -22,7 +22,7 @@ class AuthGate extends StatelessWidget {
         }
 
         if (!snapshot.hasData || snapshot.data == null) {
-          return LoginScreen(); // بدون const لتجنب الخطأ
+          return LoginScreen();
         }
 
         return FutureBuilder<DocumentSnapshot>(
@@ -43,14 +43,14 @@ class AuthGate extends StatelessWidget {
               String role = userData.containsKey('role') ? userData['role'] : '';
 
               if (role == 'teacher') {
-                return TeacherDashboardScreen(); // بدون const
+                return TeacherDashboardScreen(); 
               } else if (role == 'student') {
-                return StudentTeachersScreen(); // بدون const
+                return StudentTeachersScreen(); 
               }
             }
 
             FirebaseAuth.instance.signOut();
-            return LoginScreen(); // بدون const
+            return LoginScreen(); 
           },
         );
       },
