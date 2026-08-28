@@ -148,6 +148,7 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
                       context,
                       title: 'الاستفسارات', 
                       icon: Icons.chat_bubble_outline, 
+                      badgeStream: _teacherService.getPendingInquiriesStream(),
                       onTap: () {
                         Navigator.push(context, MaterialPageRoute(builder: (context) => const TeacherInquiriesScreen()));
                       }

@@ -190,8 +190,9 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                   _buildDashboardItem(
                     title: 'إشعارات', 
                     icon: Icons.notifications_none, 
-                    badgeStream: _studentService.getStudentNotifications(widget.teacherId), 
+badgeCountStream: _studentService.getUnreadNotificationsCount(widget.teacherId, widget.stage, widget.groupName),                    
                     onTap: () {
+_studentService.markNotificationsAsRead(widget.teacherId, widget.stage, widget.groupName);
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => StudentNotificationsScreen(
@@ -224,8 +225,9 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                   _buildDashboardItem(
                     title: 'الاستفسارات', 
                     icon: Icons.chat_bubble_outline, 
-                    badgeStream: _studentService.getAnsweredInquiries(),
+                    badgeCountStream: _studentService.getAnsweredInquiriesCount(), // 👈 الـ Stream الجديد
                     onTap: () {
+                      _studentService.markInquiriesAsRead(); // 👈 علمها كمقروءة
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => StudentInquiriesScreen(
@@ -248,7 +250,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     required String title, 
     required IconData icon, 
     required VoidCallback onTap,
-    Stream<QuerySnapshot>? badgeStream, 
+    Stream<int>? badgeCountStream, 
   }) {
     return GestureDetector(
       onTap: onTap,
@@ -273,13 +275,13 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                   child: Icon(icon, color: const Color(0xFF1B3B5A), size: 24),
                 ),
                 
-                if (badgeStream != null)
-                  StreamBuilder<QuerySnapshot>(
-                    stream: badgeStream,
+                if (badgeCountStream != null)
+                  StreamBuilder<int>(
+                    stream: badgeCountStream,
                     builder: (context, snapshot) {
-                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const SizedBox.shrink();
+                      if (!snapshot.hasData || snapshot.data! == 0) return const SizedBox.shrink();
                       
-                      int count = snapshot.data!.docs.length;
+                      int count = snapshot.data!;
                       return Positioned(
                         top: -5,
                         right: -5,

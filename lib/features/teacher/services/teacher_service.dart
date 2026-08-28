@@ -611,4 +611,15 @@ Future<String> saveExamGrades({
       return e.toString();
     }
   }
+
+  Stream<QuerySnapshot> getPendingInquiriesStream() {
+    String? uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return const Stream.empty();
+    
+    return _firestore
+        .collection('inquiries')
+        .where('teacherId', isEqualTo: uid)
+        .where('status', isEqualTo: 'pending') 
+        .snapshots();
+  }
 }

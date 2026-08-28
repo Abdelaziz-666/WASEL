@@ -23,6 +23,72 @@ class StudentService {
         .snapshots();
   }
 
+  Stream<int> getUnreadNotificationsCount(String teacherId, String stage, String group) {
+    String? uid = _auth.currentUser?.uid;
+    if (uid == null) return Stream.value(0);
+
+    return _firestore
+        .collection('notifications')
+        .where('teacherId', isEqualTo: teacherId)
+        .snapshots()
+        .map((snapshot) {
+          int count = 0;
+          for (var doc in snapshot.docs) {
+            var data = doc.data() as Map<String, dynamic>;
+            String targetType = data['targetType'] ?? 'all';
+            
+            bool isForMe = false;
+            if (targetType == 'all') {
+              isForMe = true;
+            } else if (targetType == 'stage' && data['stage'] == stage) {
+              isForMe = true;
+            } else if (targetType == 'group' && data['stage'] == stage && data['group'] == group) {
+              isForMe = true;
+            }
+
+            if (isForMe) {
+              List<dynamic> readBy = data['readBy'] ?? [];
+              if (!readBy.contains(uid)) {
+                count++;
+              }
+            }
+          }
+          return count;
+        });
+  }
+
+  Future<void> markNotificationsAsRead(String teacherId, String stage, String group) async {
+    String? uid = _auth.currentUser?.uid;
+    if (uid == null) return;
+    
+    var snapshot = await _firestore.collection('notifications')
+        .where('teacherId', isEqualTo: teacherId)
+        .get();
+        
+    for (var doc in snapshot.docs) {
+      var data = doc.data() as Map<String, dynamic>;
+      String targetType = data['targetType'] ?? 'all';
+            
+      bool isForMe = false;
+      if (targetType == 'all') {
+        isForMe = true;
+      } else if (targetType == 'stage' && data['stage'] == stage) {
+        isForMe = true;
+      } else if (targetType == 'group' && data['stage'] == stage && data['group'] == group) {
+        isForMe = true;
+      }
+
+      if (isForMe) {
+        List<dynamic> readBy = data['readBy'] ?? [];
+        if (!readBy.contains(uid)) {
+          await doc.reference.update({
+            'readBy': FieldValue.arrayUnion([uid])
+          });
+        }
+      }
+    }
+  }
+
   Stream<QuerySnapshot> getExamsForTeacher(String teacherId, String stage, String group, int year, int month) {
     return _firestore
         .collection('exams')
@@ -84,11 +150,39 @@ class StudentService {
         .snapshots();
   }
 
-  Future<void> deleteInquiry(String inquiryId) async {
+Future<void> deleteInquiry(String inquiryId) async {
     try {
-      await _firestore.collection('inquiries').doc(inquiryId).delete();
+      await _firestore.collection('inquiries').doc(inquiryId).update({
+        'isDeletedByStudent': true,
+      });
     } catch (e) {
       print("Error deleting inquiry: $e");
+    }
+  }
+
+  Stream<int> getAnsweredInquiriesCount() {
+    String? uid = _auth.currentUser?.uid;
+    if (uid == null) return Stream.value(0);
+    
+    return _firestore
+        .collection('inquiries')
+        .where('studentId', isEqualTo: uid)
+        .where('status', isEqualTo: 'answered')
+        .snapshots()
+        .map((snapshot) => snapshot.docs.length);
+  }
+
+  Future<void> markInquiriesAsRead() async {
+    String? uid = _auth.currentUser?.uid;
+    if (uid == null) return;
+    
+    var snapshot = await _firestore.collection('inquiries')
+        .where('studentId', isEqualTo: uid)
+        .where('status', isEqualTo: 'answered')
+        .get();
+        
+    for (var doc in snapshot.docs) {
+      await doc.reference.update({'status': 'read'});
     }
   }
 
@@ -170,17 +264,4 @@ class StudentService {
         .where('year', isEqualTo: year)
         .snapshots();
   }
-
-  Stream<QuerySnapshot> getAnsweredInquiries() {
-    String? uid = _auth.currentUser?.uid;
-    if (uid == null) return const Stream.empty();
-    
-    return _firestore
-        .collection('inquiries')
-        .where('studentId', isEqualTo: uid)
-        .where('status', isEqualTo: 'answered') 
-        .snapshots();
-  }
-
-  
 }

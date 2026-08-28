@@ -103,7 +103,11 @@ class _StudentInquiriesScreenState extends State<StudentInquiriesScreen> {
                       return const Center(child: Text('اسأل مدرسك وسيجيب عليك هنا!', style: TextStyle(color: Colors.grey, fontSize: 16)));
                     }
 
-                    var inquiries = snapshot.data!.docs;
+var inquiries = snapshot.data!.docs.where((doc) {
+                      var data = doc.data() as Map<String, dynamic>;
+                      return data['isDeletedByStudent'] != true; 
+                    }).toList();
+
                     var teacherInquiries = inquiries.where((doc) => doc['teacherId'] == widget.teacherId).toList();
 
                     if (teacherInquiries.isEmpty) {
