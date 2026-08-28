@@ -39,6 +39,19 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            Center(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12), 
+                child: Image.asset(
+                  'assets/images/logo.png',
+                  width: 100,
+                  height: 100,
+                  fit: BoxFit.cover,
+                  color: Colors.white.withOpacity(0.0),
+                  colorBlendMode: BlendMode.dst,
+                ),
+              ),
+            ),
             const Text('تسجيل الدخول', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF1B3B5A))),
             const SizedBox(height: 40),
             CustomTextField(
